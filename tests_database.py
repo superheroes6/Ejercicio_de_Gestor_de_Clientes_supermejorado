@@ -3,6 +3,7 @@ import unittest
 import database as db
 import helpers
 import config
+import csv
 
 class TestDatabase(unittest.TestCase):
     def setUp(self):

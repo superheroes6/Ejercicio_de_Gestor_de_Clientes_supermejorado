@@ -1,5 +1,6 @@
 import csv
 import config
+import os
 
 class Cliente:
     def __init__(self, dni, nombre, apellido):
@@ -12,6 +13,10 @@ class Cliente:
 
 class Clientes:
     lista = []
+    if not os.path.exists(config.DATABASE_PATH):
+        with open(config.DATABASE_PATH, "w", newline="\n") as fichero:
+            pass  # Crear el archivo vacío si no existe
+
     with open(config.DATABASE_PATH, newline="\n") as fichero:
         reader = csv.reader(fichero, delimiter=";")
         for dni, nombre, apellido in reader:

@@ -65,6 +65,6 @@ class Aplicacion:
             self.tree.delete(item)
 
         for cliente in self.base_datos.obtener_clientes():
-            self.tree.insert("", "end", values=(cliente.nif, cliente.nombre, cliente.direccion,
+            self.tree.insert("", "end", values=(cliente.dni, cliente.nombre, cliente.apellido,
                                                 cliente.telefono, cliente.correo_electronico,
                                                 "Sí" if cliente.vip else "No"))
