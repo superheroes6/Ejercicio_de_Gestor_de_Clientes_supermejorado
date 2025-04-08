@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 
 def limpiar_pantalla():
     os.system('cls') if platform.system() == "Windows" else os.system('clear')
@@ -10,11 +11,9 @@ def leer_texto(longitud_min=0, longitud_max=100, mensaje=None):
         texto = input("> ")
         if len(texto) >= longitud_min and len(texto) <= longitud_max:
             return texto
-        
-import re
 
 def dni_valido(dni, lista):
-    if not re.match(r'^[0-9]{8}[A-Z]$', dni):
+    if not re.match('[0-9]{2}[A-Z]$', dni):
         print("DNI incorrecto, debe cumplir el formato.")
         return False
     for cliente in lista:
