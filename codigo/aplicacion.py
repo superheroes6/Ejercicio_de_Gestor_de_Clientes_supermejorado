@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
-from database import Clientes
+from codigo.database import Clientes
+from codigo.helpers import dni_valido  # Importar la función dni_valido directamente
 
 class Aplicacion:
     def __init__(self, master):
@@ -9,7 +10,6 @@ class Aplicacion:
 
         self.base_datos = Clientes
 
-        # Configuración del Treeview para mostrar los clientes
         self.tree = ttk.Treeview(master)
         self.tree["columns"] = ("NIF", "Nombre", "Apellido")
         self.tree.column("#0", width=0, stretch=tk.NO)
@@ -20,7 +20,6 @@ class Aplicacion:
 
         self.tree.pack(pady=10)
 
-        # Botones para las acciones principales
         self.boton_añadir = tk.Button(master, text="Añadir Cliente", command=self.abrir_formulario_añadir)
         self.boton_añadir.pack(pady=5)
 
@@ -79,18 +78,18 @@ class Aplicacion:
         entrada_apellido.insert(0, cliente.apellido if cliente else "")
 
         def guardar():
-            if cliente is None:  # Añadir cliente
+            if cliente is None:
                 dni = entrada_dni.get()
                 if not dni:
                     messagebox.showwarning("Campos Vacíos", "El campo DNI es obligatorio.")
                     return
             else:
-                dni = cliente.dni  # Usar el DNI existente al modificar
+                dni = cliente.dni
 
             nombre = entrada_nombre.get()
             apellido = entrada_apellido.get()
             if nombre and apellido:
-                accion(dni, nombre, apellido)  # Pasar DNI, nombre y apellido
+                accion(dni, nombre, apellido)
                 self.actualizar_treeview()
                 formulario.destroy()
             else:
@@ -108,6 +107,57 @@ class Aplicacion:
 
         for cliente in self.base_datos.lista:
             self.tree.insert("", "end", values=(cliente.dni, cliente.nombre, cliente.apellido))
+
+class CreateClientWindow(tk.Toplevel):
+    def __init__(self, master):
+        super().__init__(master)
+        self.master = master
+        self.title("Crear Cliente")
+        self.validaciones = [False, False, False]
+        self.build()
+
+    def build(self):
+        frame = tk.Frame(self)
+        frame.pack(padx=20, pady=10)
+
+        tk.Label(frame, text="DNI (2 ints y 1 upper char)").grid(row=0, column=0)
+        tk.Label(frame, text="Nombre (2 a 30 chars)").grid(row=0, column=1)
+        tk.Label(frame, text="Apellido (2 a 30 chars)").grid(row=0, column=2)
+
+        self.dni = tk.Entry(frame)
+        self.dni.grid(row=1, column=0)
+        self.dni.bind("<KeyRelease>", lambda ev: self.validate(ev, 0))
+
+        self.nombre = tk.Entry(frame)
+        self.nombre.grid(row=1, column=1)
+        self.nombre.bind("<KeyRelease>", lambda ev: self.validate(ev, 1))
+
+        self.apellido = tk.Entry(frame)
+        self.apellido.grid(row=1, column=2)
+        self.apellido.bind("<KeyRelease>", lambda ev: self.validate(ev, 2))
+
+        frame_buttons = tk.Frame(self)
+        frame_buttons.pack(pady=10)
+
+        self.crear = tk.Button(frame_buttons, text="Crear", command=self.create_client, state=tk.DISABLED)
+        self.crear.grid(row=0, column=0)
+
+        tk.Button(frame_buttons, text="Cancelar", command=self.close).grid(row=0, column=1)
+
+    def validate(self, event, index):
+        valor = event.widget.get()
+        valido = dni_valido(valor, Clientes.lista) if index == 0 else (valor.isalpha() and 2 <= len(valor) <= 30)
+        event.widget.configure({"bg": "Green" if valido else "Red"})
+        self.validaciones[index] = valido
+        self.crear.config(state=tk.NORMAL if all(self.validaciones) else tk.DISABLED)
+
+    def create_client(self):
+        Clientes.crear(self.dni.get(), self.nombre.get(), self.apellido.get())
+        self.master.actualizar_treeview()
+        self.close()
+
+    def close(self):
+        self.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()

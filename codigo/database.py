@@ -1,5 +1,5 @@
+from .config import DATABASE_PATH
 import csv
-import config
 import os
 
 class Cliente:
@@ -13,11 +13,11 @@ class Cliente:
 
 class Clientes:
     lista = []
-    if not os.path.exists(config.DATABASE_PATH):
-        with open(config.DATABASE_PATH, "w", newline="\n") as fichero:
+    if not os.path.exists(DATABASE_PATH):
+        with open(DATABASE_PATH, "w", newline="\n") as fichero:
             pass  # Crear el archivo vacío si no existe
 
-    with open(config.DATABASE_PATH, newline="\n") as fichero:
+    with open(DATABASE_PATH, newline="\n") as fichero:
         reader = csv.reader(fichero, delimiter=";")
         for dni, nombre, apellido in reader:
             cliente = Cliente(dni, nombre, apellido)
@@ -55,7 +55,7 @@ class Clientes:
 
     @staticmethod
     def guardar():
-        with open(config.DATABASE_PATH, "w", newline="\n") as fichero:
+        with open(DATABASE_PATH, "w", newline="\n") as fichero:
             writer = csv.writer(fichero, delimiter=";")
             for c in Clientes.lista:
                 writer.writerow((c.dni, c.nombre, c.apellido))

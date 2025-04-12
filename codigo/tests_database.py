@@ -1,7 +1,7 @@
 import copy
 import unittest
-import database as db
-import helpers
+import codigo.database as db
+import codigo.helpers as helpers
 import config
 import csv
 
