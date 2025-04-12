@@ -1,70 +1,115 @@
 import tkinter as tk
-from tkinter import ttk
-from base_datos_clientes import BaseDatosClientes
-from cliente import Cliente
+from tkinter import ttk, messagebox, simpledialog
+from database import Clientes
 
 class Aplicacion:
     def __init__(self, master):
         self.master = master
         master.title("Gestor de Clientes")
 
-        self.base_datos = BaseDatosClientes()
+        self.base_datos = Clientes
 
+        # Configuración del Treeview para mostrar los clientes
         self.tree = ttk.Treeview(master)
-        self.tree["columns"] = ("NIF", "Nombre", "Dirección", "Teléfono", "Correo", "VIP")
+        self.tree["columns"] = ("NIF", "Nombre", "Apellido")
         self.tree.column("#0", width=0, stretch=tk.NO)
 
         for col in self.tree["columns"]:
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor=tk.CENTER)
 
-        self.tree.pack()
+        self.tree.pack(pady=10)
 
-        self.frame_formulario = tk.Frame(master)
-        self.frame_formulario.pack()
+        # Botones para las acciones principales
+        self.boton_añadir = tk.Button(master, text="Añadir Cliente", command=self.abrir_formulario_añadir)
+        self.boton_añadir.pack(pady=5)
 
-        self.etiquetas = ["NIF", "Nombre", "Dirección", "Teléfono", "Correo", "VIP"]
-        self.entradas = {}
+        self.boton_borrar = tk.Button(master, text="Borrar Cliente", command=self.borrar_cliente)
+        self.boton_borrar.pack(pady=5)
 
-        for etiqueta in self.etiquetas:
-            fila = tk.Frame(self.frame_formulario)
-            fila.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.boton_modificar = tk.Button(master, text="Modificar Cliente", command=self.abrir_formulario_modificar)
+        self.boton_modificar.pack(pady=5)
 
-            tk.Label(fila, text=etiqueta, width=15).pack(side=tk.LEFT)
-            entrada = tk.Entry(fila)
-            entrada.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+        self.boton_mostrar = tk.Button(master, text="Mostrar Base de Datos", command=self.listar_clientes)
+        self.boton_mostrar.pack(pady=5)
 
-            self.entradas[etiqueta.lower()] = entrada
-
-        self.boton_agregar = tk.Button(master, text="Agregar Cliente", command=self.agregar_cliente)
-        self.boton_agregar.pack()
-
-        self.boton_eliminar = tk.Button(master, text="Eliminar Cliente", command=self.eliminar_cliente)
-        self.boton_eliminar.pack()
-
-    def agregar_cliente(self):
-        datos = {clave: entrada.get() for clave, entrada in self.entradas.items()}
-        vip = datos["vip"].lower() == "si"
-        cliente = Cliente(datos["nif"], datos["nombre"], datos["dirección"], datos["teléfono"], datos["correo"], vip)
-        self.base_datos.agregar_cliente(cliente)
         self.actualizar_treeview()
 
-    def eliminar_cliente(self):
-        seleccion = self.tree.selection()
-        if seleccion:
-            item = seleccion[0]
-            valores = self.tree.item(item, "values")
-            for cliente in self.base_datos.obtener_clientes():
-                if cliente.nif == valores[0]:
-                    self.base_datos.eliminar_cliente(cliente)
-                    break
-            self.actualizar_treeview()
+    def listar_clientes(self):
+        self.actualizar_treeview()
+
+    def abrir_formulario_añadir(self):
+        self.abrir_formulario("Añadir Cliente", self.base_datos.crear)
+
+    def abrir_formulario_modificar(self):
+        dni = self.pedir_dni("Modificar Cliente")
+        if dni:
+            cliente = self.base_datos.buscar(dni)
+            if cliente:
+                self.abrir_formulario("Modificar Cliente", lambda d, n, a: self.base_datos.modificar(d, n, a), cliente)
+            else:
+                messagebox.showwarning("No Encontrado", "Cliente no encontrado.")
+
+    def borrar_cliente(self):
+        dni = self.pedir_dni("Borrar Cliente")
+        if dni:
+            if self.base_datos.borrar(dni):
+                messagebox.showinfo("Éxito", "Cliente borrado correctamente.")
+                self.actualizar_treeview()
+            else:
+                messagebox.showwarning("No Encontrado", "Cliente no encontrado.")
+
+    def abrir_formulario(self, titulo, accion, cliente=None):
+        formulario = tk.Toplevel(self.master)
+        formulario.title(titulo)
+
+        if cliente is None:  # Mostrar el campo DNI solo al añadir un cliente
+            tk.Label(formulario, text="DNI:").grid(row=0, column=0, padx=10, pady=5)
+            entrada_dni = tk.Entry(formulario)
+            entrada_dni.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(formulario, text="Nombre:").grid(row=1 if cliente is None else 0, column=0, padx=10, pady=5)
+        entrada_nombre = tk.Entry(formulario)
+        entrada_nombre.grid(row=1 if cliente is None else 0, column=1, padx=10, pady=5)
+        entrada_nombre.insert(0, cliente.nombre if cliente else "")
+
+        tk.Label(formulario, text="Apellido:").grid(row=2 if cliente is None else 1, column=0, padx=10, pady=5)
+        entrada_apellido = tk.Entry(formulario)
+        entrada_apellido.grid(row=2 if cliente is None else 1, column=1, padx=10, pady=5)
+        entrada_apellido.insert(0, cliente.apellido if cliente else "")
+
+        def guardar():
+            if cliente is None:  # Añadir cliente
+                dni = entrada_dni.get()
+                if not dni:
+                    messagebox.showwarning("Campos Vacíos", "El campo DNI es obligatorio.")
+                    return
+            else:
+                dni = cliente.dni  # Usar el DNI existente al modificar
+
+            nombre = entrada_nombre.get()
+            apellido = entrada_apellido.get()
+            if nombre and apellido:
+                accion(dni, nombre, apellido)  # Pasar DNI, nombre y apellido
+                self.actualizar_treeview()
+                formulario.destroy()
+            else:
+                messagebox.showwarning("Campos Vacíos", "Por favor, completa todos los campos.")
+
+        tk.Button(formulario, text="Guardar", command=guardar).grid(row=3 if cliente is None else 2, column=0, columnspan=2, pady=10)
+
+    def pedir_dni(self, titulo):
+        dni = simpledialog.askstring(titulo, "Introduce el DNI del cliente:")
+        return dni.upper() if dni else None
 
     def actualizar_treeview(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        for cliente in self.base_datos.obtener_clientes():
-            self.tree.insert("", "end", values=(cliente.dni, cliente.nombre, cliente.apellido,
-                                                cliente.telefono, cliente.correo_electronico,
-                                                "Sí" if cliente.vip else "No"))
+        for cliente in self.base_datos.lista:
+            self.tree.insert("", "end", values=(cliente.dni, cliente.nombre, cliente.apellido))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Aplicacion(root)
+    root.mainloop()
